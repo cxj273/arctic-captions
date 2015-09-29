@@ -9,45 +9,58 @@ import cPickle
 from sklearn.feature_extraction.text import CountVectorizer
 import pdb
 
-annotation_path = 'data/flickr30k/results_20130124.token'
+annotation_path = '/home/ubuntu/Data/xiaojun/Data/Flickr8k/Flickr8k.lemma.token.txt'
 vgg_deploy_path = 'VGG_ILSVRC_16_layers_deploy.prototxt'
-vgg_model_path  = '/home/ubuntu/Data/xiaojun/models/vgg/VGG_ILSVRC_16_layers.caffemodel'
-flickr_image_path = '/home/ubuntu/Data/xiaojun/dataset/flickr30k/flickr30k-images'
-feat_path='feat/flickr30k'
+vgg_model_path = '/home/ubuntu/Data/xiaojun/models/vgg/VGG_ILSVRC_16_layers.caffemodel'
+flickr_image_path = '/home/ubuntu/Data/xiaojun/Data/Flickr8k/Flicker8k_Dataset'
+feat_path = 'feat/flickr8k'
+train_image_list = '/home/ubuntu/Data/xiaojun/Data/Flickr8k/Flickr_8k.trainImages.txt'
+test_image_list = '/home/ubuntu/Data/xiaojun/Data/Flickr8k/Flickr_8k.testImages.txt'
+dev_image_list = '/home/ubuntu/Data/xiaojun/Data/Flickr8k/Flickr_8k.devImages.txt'
+
+annotations = pd.read_table(annotation_path, sep='\t', header=None, names=['image', 'caption'])
+
+annotations['image_num'] = annotations['image'].map(lambda x: x.split('#')[1])
+all_image = annotations['image'].map(lambda x: x.split('#')[0])
+all_image = all_image.unique()
+annotations['image'] = annotations['image'].map(lambda x: os.path.join(flickr_image_path, x.split('#')[0]))
+
+captions = annotations['caption'].values
+
+vectorizer = CountVectorizer(lowercase=False).fit(captions)
+dictionary = vectorizer.vocabulary_
+dictionary_series = pd.Series(dictionary.values(), index=dictionary.keys()) + 2
+dictionary = dictionary_series.to_dict()
+
+with open('data/flickr8k/dictionary.pkl', 'wb') as f:
+    cPickle.dump(dictionary, f)
+
+images = pd.Series(annotations['image'].unique())
+# ipdb.set_trace()
+image_id_dict = pd.Series(np.array(images.index), index=images)
+
+caption_image_id = annotations['image'].map(lambda x: image_id_dict[x]).values
+cap = zip(captions, caption_image_id)
+
+# load train, test and dev
+train_images = pd.read_table(train_image_list, sep='\t', header=None, names=['image'])
+train_image = train_images['image']
+train_idx = train_image.map(lambda x: np.where(all_image==x)[0][0])
+# ipdb.set_trace()
+test_images = pd.read_table(test_image_list, sep='\t', header=None, names=['image'])
+test_image = test_images['image']
+test_idx = test_image.map(lambda x: np.where(all_image==x)[0][0])
+dev_images = pd.read_table(dev_image_list, sep='\t', header=None, names=['image'])
+dev_image = dev_images['image']
+dev_idx = dev_image.map(lambda x: np.where(all_image==x)[0][0])
+
 cnn = CNN(deploy=vgg_deploy_path,
           model=vgg_model_path,
           batch_size=20,
           width=224,
           height=224)
 
-annotations = pd.read_table(annotation_path, sep='\t', header=None, names=['image', 'caption'])
-annotations['image_num'] = annotations['image'].map(lambda x: x.split('#')[1])
-annotations['image'] = annotations['image'].map(lambda x: os.path.join(flickr_image_path,x.split('#')[0]))
-
-captions = annotations['caption'].values
-
-vectorizer = CountVectorizer().fit(captions)
-dictionary = vectorizer.vocabulary_
-dictionary_series = pd.Series(dictionary.values(), index=dictionary.keys()) + 2
-dictionary = dictionary_series.to_dict()
-
-with open('data/flickr30k/dictionary.pkl', 'wb') as f:
-    cPickle.dump(dictionary, f)
-
-images = pd.Series(annotations['image'].unique())
-image_id_dict = pd.Series(np.array(images.index), index=images)
-
-caption_image_id = annotations['image'].map(lambda x: image_id_dict[x]).values
-cap = zip(captions, caption_image_id)
-
-# split up into train, test, and dev
-all_idx = range(len(images))
-np.random.shuffle(all_idx)
-train_idx  = all_idx[0:25000]
-test_idx = all_idx[25000:30000]
-dev_idx = all_idx[30000:]
-
-# training set
+#training set
 images_train = images[train_idx]
 image_id_dict_train = image_id_dict[train_idx]
 caption_image_id_train = caption_image_id[train_idx]
@@ -62,9 +75,9 @@ for start, end in zip(range(0, len(images_train)+100, 100), range(100, len(image
     else:
         feat_flatten_list_train = scipy.sparse.vstack([feat_flatten_list_train, scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))])
 
-    print "processing images %d to %d" % (start, end)
+    print "processing images %d to %d " % (start, end)
 
-with open('data/flickr30k/flicker_30k_align.train.pkl', 'wb') as f:
+with open('data/flickr8k/flicker_8k_align.train.pkl', 'wb') as f:
     cPickle.dump(cap_train, f)
     cPickle.dump(feat_flatten_list_train, f)
 
@@ -83,9 +96,9 @@ for start, end in zip(range(0, len(images_test)+100, 100), range(100, len(images
     else:
         feat_flatten_list_test = scipy.sparse.vstack([feat_flatten_list_test, scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))])
 
-    print "processing images %d to %d" % (start, end)
+    print "processing images %d to %d " % (start, end)
 
-with open('data/flickr30k/flicker_30k_align.test.pkl', 'wb') as f:
+with open('data/flickr8k/flicker_8k_align.test.pkl', 'wb') as f:
     cPickle.dump(cap_test, f)
     cPickle.dump(feat_flatten_list_test, f)
 
@@ -96,7 +109,7 @@ caption_image_id_dev = caption_image_id[dev_idx]
 captions_dev = captions[dev_idx]
 cap_dev = zip(captions_dev, caption_image_id_dev)
 
-for start, end in zip(range(0, len(images_dev)+100, 100), range(100, len(images_dev)+100, 100)):
+for start, end in zip(range(0, len(images_dev)+100, 100), range(100, len(images_dev)+100,  100)):
     image_files = images_dev[start:end]
     feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
     if start == 0:
@@ -104,8 +117,8 @@ for start, end in zip(range(0, len(images_dev)+100, 100), range(100, len(images_
     else:
         feat_flatten_list_dev = scipy.sparse.vstack([feat_flatten_list_dev, scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))])
 
-    print "processing images %d to %d" % (start, end)
+    print "processing images %d to %d " % (start, end)
 
-with open('data/flickr30k/flicker_30k_align.dev.pkl', 'wb') as f:
+with open('data/flickr8k/flicker_8k_align.dev.pkl', 'wb') as f:
     cPickle.dump(cap_dev, f)
     cPickle.dump(feat_flatten_list_dev, f)

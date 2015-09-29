@@ -52,7 +52,7 @@ def main(params):
 if __name__ == "__main__":
     # These defaults should more or less reproduce the soft
     # alignment model for the MS COCO dataset
-    defaults = {"model": "flickr8k_caption_model.npz",
+    defaults = {"model": "flickr8k_caption_lstm_encoder_model.npz",
                 "attn-type": "deterministic",
                 "dim-word": 512,
                 "ctx-dim": 512,
@@ -62,7 +62,7 @@ if __name__ == "__main__":
                 "n-layers-lstm": 1,
                 "n-layers-init": 2,
                 "n-words": 10000,
-                "lstm-encoder": False,
+                "lstm-encoder": True,
                 "decay-c": 0.,
                 "alpha-c": 1.,
                 "prev2out": True,

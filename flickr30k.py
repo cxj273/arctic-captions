@@ -58,7 +58,7 @@ def prepare_data(caps, features, worddict, maxlen=None, n_words=10000, zero_pad=
 
     return x, x_mask, y
 
-def load_data(load_train=True, load_dev=True, load_test=True, path='./'):
+def load_data(load_train=True, load_dev=True, load_test=True, path='/home/ubuntu/Data/xiaojun/Toolbox/caption_asampat3090/data/flickr30k/'):
     ''' Loads the dataset
 
     :type dataset: string

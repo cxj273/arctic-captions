@@ -6,6 +6,7 @@ Works on CPU with support for multi-process
 import argparse
 import numpy
 import cPickle as pkl
+import ipdb
 
 from capgen import build_sampler, gen_sample, \
                    load_params, \
@@ -76,6 +77,7 @@ def main(model, saveto, k=5, normalize=False, zero_pad=False, n_process=5, datas
         word_idict[vv] = kk
     word_idict[0] = '<eos>'
     word_idict[1] = 'UNK'
+    ipdb.set_trace()
 
     # create processes
     queue = Queue()
@@ -126,14 +128,18 @@ def main(model, saveto, k=5, normalize=False, zero_pad=False, n_process=5, datas
         if dd == 'dev':
             print 'Development Set...',
             _send_jobs(valid[1])
-            caps = _seqs2words(_retrieve_jobs(len(valid[1])))
+            vvv = valid[1].toarray()
+            caps = _seqs2words(_retrieve_jobs(len(vvv)))
+            print caps
             with open(saveto+'.dev.txt', 'w') as f:
                 print >>f, '\n'.join(caps)
             print 'Done'
         if dd == 'test':
             print 'Test Set...',
             _send_jobs(test[1])
-            caps = _seqs2words(_retrieve_jobs(len(test[1])))
+            vvv = test[1].toarray()
+            caps = _seqs2words(_retrieve_jobs(len(vvv)))
+            print caps
             with open(saveto+'.test.txt', 'w') as f:
                 print >>f, '\n'.join(caps)
             print 'Done'

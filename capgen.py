@@ -882,7 +882,7 @@ def gen_sample(tparams, f_init, f_next, ctx0, options,
     hyp_memories = []
 
     # only matters if we use lstm encoder
-    rval = f_init(ctx0)
+    rval = f_init(ctx0.astype('float32'))
     ctx0 = rval[0]
     next_state = []
     next_memory = []

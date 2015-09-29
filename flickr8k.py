@@ -12,12 +12,17 @@ def prepare_data(caps, features, worddict, maxlen=None, n_words=10000, zero_pad=
     seqs = []
     feat_list = []
     for cc in caps:
-        seqs.append([worddict[w] if worddict[w] < n_words else 1 for w in cc[0].split()])
-        feat_list.append(features[cc[1]])
+        try:
+            seqs.append([worddict[w.lower()] if (w.lower() in worddict and worddict[w.lower()] < n_words) else 1 for w in cc[0].split()])
+            feat_list.append(features[cc[1]])
+        except:
+            # add dummies to maintain dimentionality
+            seqs.append(seqs[0])
+            # feat_list.append(feat_list[0])
 
     lengths = [len(s) for s in seqs]
 
-    if maxlen != None and numpy.max(lengths) >= maxlen:
+    if maxlen != None: # and numpy.max(lengths) >= maxlen:
         new_seqs = []
         new_feat_list = []
         new_lengths = []
@@ -53,7 +58,7 @@ def prepare_data(caps, features, worddict, maxlen=None, n_words=10000, zero_pad=
 
     return x, x_mask, y
 
-def load_data(load_train=True, load_dev=True, load_test=True, path='./'):
+def load_data(load_train=True, load_dev=True, load_test=True, path='/home/ubuntu/Data/xiaojun/Toolbox/caption_asampat3090/data/flickr8k/'):
     ''' Loads the dataset
 
     :type dataset: string
